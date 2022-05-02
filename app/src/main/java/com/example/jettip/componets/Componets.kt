@@ -42,8 +42,7 @@ fun InputField(
             fontSize = 18.sp,
             color = MaterialTheme.colors.onBackground),
         modifier = modifier
-            .padding(bottom = 10.dp, start = 10.dp, end = 10.dp)
-            .fillMaxWidth(),
+            .padding(bottom = 10.dp, start = 10.dp, end = 10.dp),
         enabled = enabled,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
         keyboardActions = onAction
