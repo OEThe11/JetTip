@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.jettip.componets.InputField
 import com.example.jettip.ui.theme.JetTipTheme
+import com.example.jettip.utils.calculateTotalPerson
+import com.example.jettip.utils.calculateTotalTip
 import com.example.jettip.widgets.RoundIconButton
 
 private const val TAG = "MainActivity"
@@ -40,19 +43,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             JetTipTheme {
                     MyApp{
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
-                        ) {
-                            TopHeader()
                             MainContent()
                         }
                     }
                 }
             }
         }
-    }
+
 
 @Composable
 fun MyApp(content: @Composable () -> Unit){
@@ -100,21 +97,45 @@ fun TopHeader(totalPerPerson: Double = 134.0){
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MainContent(){
-
-    BillForm(){billAmt->
-        Log.d(TAG, "MainContent: $billAmt")
-
+    //Used to display the split number between the two buttons
+    val splitByState = remember {
+        mutableStateOf(1)
     }
+
+    //Just controls the range of the plus button.
+    val range = IntRange(start = 1, endInclusive = 100)
+
+    val tipAmountState = remember {
+        mutableStateOf(0.0)
+    }
+
+    val totalPerPersonState = remember {
+        mutableStateOf(0.0)
+    }
+    Column(modifier = Modifier.fillMaxSize().padding(8.dp)
+    ) {
+        BillForm(
+            splitByState = splitByState,
+            tipAmountState = tipAmountState,
+            totalPerPersonState = totalPerPersonState,
+            range = range) {}
+    }
+
+            /** ^^ This is State Hoisting ^^ **/
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun BillForm(
     modifier: Modifier = Modifier,
+    range: IntRange = 1..100,
+    splitByState: MutableState<Int>,
+    tipAmountState: MutableState<Double>,
+    totalPerPersonState: MutableState<Double>,
     onValChange: (String) -> Unit = {}
 ) {
 
-    //watches for a change in the InputField
+    //Watches for a change in the InputField
     val totalBillState = remember {
         mutableStateOf("")
     }
@@ -126,10 +147,17 @@ private fun BillForm(
 
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    //watches and controls the movements of the slider
+    //Watches and controls the movements of the slider
     val sliderPositionState = remember {
         mutableStateOf(0f)
     }
+
+    //This state is used to display the percentage of the slider
+    val tipPercentage = (sliderPositionState.value * 100).toInt()
+
+
+
+    TopHeader(totalPerPerson = totalPerPersonState.value)
 
     Surface(
         modifier = Modifier
@@ -151,7 +179,7 @@ private fun BillForm(
 
                     keyboardController?.hide()
                 })
-//            if (validState){
+            if (validState){
                 Row(
                     modifier = Modifier
                         .padding(3.dp),
@@ -167,11 +195,20 @@ private fun BillForm(
                         ) {
                         RoundIconButton(
                             imageVector = Icons.Default.Remove,
-                            onClick = { Log.d(TAG, "BillForm: Remove") }
+                            onClick = {
+                                splitByState.value =
+                                    if (splitByState.value > 1) splitByState.value - 1 else 1
+                                totalPerPersonState.value =
+                                    calculateTotalPerson(
+                                        totalBill = totalBillState.value.toDouble(),
+                                        splitBy = splitByState.value,
+                                        tipPercentage = tipPercentage
+                                    )
+                            }
                         )
 
                         Text(
-                            text = "2",
+                            text = "${splitByState.value}",
                             modifier = Modifier
                                 .align(Alignment.CenterVertically)
                                 .padding(start = 9.dp, end = 9.dp)
@@ -179,7 +216,17 @@ private fun BillForm(
 
                         RoundIconButton(
                             imageVector = Icons.Default.Add,
-                            onClick = { Log.d(TAG, "BillForm: Add") }
+                            onClick = {
+                                if (splitByState.value < range.last){
+                                  splitByState.value ++
+                                    totalPerPersonState.value =
+                                        calculateTotalPerson(
+                                            totalBill = totalBillState.value.toDouble(),
+                                            splitBy = splitByState.value,
+                                            tipPercentage = tipPercentage
+                                        )
+                                }
+                            }
                         )
                     }
                 }
@@ -192,14 +239,14 @@ private fun BillForm(
                 Spacer(modifier = Modifier.width(200.dp))
 
                 Text(
-                    text = "$33.00",
+                    text = "$${tipAmountState.value}",
                     modifier = Modifier.align(alignment = Alignment.CenterVertically))
             }
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "33%")
+                Text(text = "$tipPercentage %")
 
                 Spacer(modifier = Modifier.height(14.dp))
 
@@ -209,7 +256,16 @@ private fun BillForm(
                     value = sliderPositionState.value,
                     onValueChange = { newVal ->
                         sliderPositionState.value = newVal
-                    Log.d(TAG, "Sliding: $newVal")
+                        tipAmountState.value =
+                            calculateTotalTip(totalBill = totalBillState.value.toDouble(),
+                                tipPercentage = tipPercentage)
+
+                        totalPerPersonState.value =
+                            calculateTotalPerson(
+                                totalBill = totalBillState.value.toDouble(),
+                                splitBy = splitByState.value,
+                                tipPercentage = tipPercentage
+                            )
                 },
                     steps = 5
                 )
@@ -217,10 +273,10 @@ private fun BillForm(
             }
 
 
-//            }
-//            else {
-//                Box{}
-//            }
+            }
+            else {
+                Box{}
+            }
 
         }
     }
