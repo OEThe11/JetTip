@@ -1,7 +1,6 @@
 package com.example.jettip
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -35,7 +34,6 @@ import com.example.jettip.utils.calculateTotalPerson
 import com.example.jettip.utils.calculateTotalTip
 import com.example.jettip.widgets.RoundIconButton
 
-private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -166,7 +164,7 @@ private fun BillForm(
         shape = RoundedCornerShape(corner = CornerSize(8.dp)),
         border = BorderStroke(width = 1.dp, color = Color.LightGray)
     ) {
-        Column() {
+        Column {
 
             InputField(
                 valueState = totalBillState,
@@ -284,12 +282,3 @@ private fun BillForm(
 
 
 
-
-@Composable
-fun DefaultPreview() {
-    JetTipTheme {
-        MyApp {
-            Text(text = "Hello Again")
-        }
-    }
-}
